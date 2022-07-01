@@ -36,9 +36,8 @@ class CDGAttention(nn.Module):
         super(CDGAttention, self).__init__()   
         h,w = size[0],size[1]
         kSize = kernel_size
-        # self.gamma = Parameter(torch.ones(1))
-        # self.beta = Parameter(torch.ones(1))
-        self.gamma = Parameter(torch.ones(num_classes))        
+        self.gamma = Parameter(torch.ones(1))
+        self.beta = Parameter(torch.ones(1))
         self.rowpool = nn.AdaptiveAvgPool2d((h,1))
         self.colpool = nn.AdaptiveAvgPool2d((1,w))
         self.conv_hgt1 =conv1d(feat_in,feat_out,3)
@@ -50,14 +49,7 @@ class CDGAttention(nn.Module):
         self.conv_hwPred2 = nn.Sequential(
             nn.Conv1d(feat_out,num_classes,3,stride=1,padding=1,bias=True),
             nn.Sigmoid(),                                                            
-         )
-        #========================================================================
-        self.conv_clsUp = nn.Sequential(
-             conv1d( num_classes, feat_out, 1),
-             conv1d( feat_out, feat_in, 1 ),
-             nn.Sigmoid(),
-         )
-         #======================================================================== 
+         )         
         self.conv_upDim1 = nn.Sequential(
             nn.Conv1d(feat_out,feat_in,kSize,stride=1,padding=kSize//2,bias=True),  
             nn.Sigmoid(),                                                                              
@@ -78,18 +70,12 @@ class CDGAttention(nn.Module):
         fea_wp = self.conv_hwPred2(fea_w)            #n,class_num,w 
         #===========================================================
         fea_h = self.conv_upDim1(fea_h)                    
-        fea_w = self.conv_upDim2(fea_w)        
-        #============================================================ 
-        gamma = self.gamma.unsqueeze(0).unsqueeze(2)
-        gamma = gamma.expand( n, -1, -1)    #n, class_num, 1
-        gamma = self.conv_clsUp( gamma ).unsqueeze(3)
-        beta = 1 - gamma
-        #============================================================                 
+        fea_w = self.conv_upDim2(fea_w) 
         fea_hup = fea_h.unsqueeze(3)
         fea_wup = fea_w.unsqueeze(2)
         fea_hup = F.interpolate( fea_hup, (h,w), mode='bilinear', align_corners= True ) #n,c,h,w
         fea_wup = F.interpolate( fea_wup, (h,w), mode='bilinear', align_corners= True ) #n,c,h,w       
-        fea_hw = beta*fea_wup + gamma*fea_hup        
+        fea_hw = self.beta*fea_wup + self.gamma*fea_hup        
         fea_hw_aug = fea * fea_hw        
         #===============================================================      
         fea = torch.cat([fea, fea_hw_aug, fea_hw], dim = 1 )
