@@ -9,7 +9,7 @@ affine_par = True
 import functools
 
 import sys, os
-from utils.attention import CDGAttention, C2CAttention
+from CDGNet.utils.attention import CDGAttention, C2CAttention
 from torch.nn import BatchNorm2d as BatchNorm2d
 
 def InPlaceABNSync(in_channel):
